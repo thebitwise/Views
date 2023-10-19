@@ -1,0 +1,84 @@
+--$$\        $$$$$$\  $$\   $$\  $$$$$$\  $$$$$$$$\ 
+--$$ |      $$  __$$\ $$$\  $$ |$$  __$$\ $$  _____|
+--$$ |      $$ /  $$ |$$$$\ $$ |$$ /  \__|$$ |      
+--$$ |      $$$$$$$$ |$$ $$\$$ |$$ |      $$$$$\    
+--$$ |      $$  __$$ |$$ \$$$$ |$$ |      $$  __|   
+--$$ |      $$ |  $$ |$$ |\$$$ |$$ |  $$\ $$ |      
+--$$$$$$$$\ $$ |  $$ |$$ | \$$ |\$$$$$$  |$$$$$$$$\ 
+--\________|\__|  \__|\__|  \__| \______/ \________|
+-- coded by Lance/stonerchrist on Discord
+util.require_natives("2944b", "g")
+local ROOT = menu.my_root()
+
+local function debug(txt)
+    util.log('[PreviewMe] ' .. txt)
+end
+
+local function pid_to_ped(pid)
+    return GET_PLAYER_PED(pid)
+end 
+
+function create_player_clone(pid)
+    local new_ped = CLONE_PED(pid_to_ped(pid), false, false, true)
+    FREEZE_ENTITY_POSITION(new_ped, true)
+    SET_ENTITY_INVINCIBLE(new_ped, true)
+    SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(new_ped, true)
+    TASK_SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(new_ped, true)
+    SET_ENTITY_COORDS(new_ped, 0, 0, -50, true, true, true, false)
+    SET_ENTITY_ALPHA(new_ped, 200, false)
+    SET_ENTITY_COLLISION(new_ped, false, false)
+    debug('New ped created')
+    return new_ped
+end
+
+-- credit to nowiry innit
+local function get_offset_from_gameplay_camera(distance)
+    local cam_rot = GET_GAMEPLAY_CAM_ROT(0)
+    local cam_pos = GET_GAMEPLAY_CAM_COORD()
+    local direction = v3.toDir(cam_rot)
+    local destination = 
+    { 
+        x = cam_pos.x + direction.x * distance, 
+        y = cam_pos.y + direction.y * distance, 
+        z = cam_pos.z + direction.z * distance 
+    }
+    return destination
+end
+
+local y_offset = -1
+ROOT:slider('Y offset', {}, '', -10, 10, -1, 1, function(val)
+    y_offset = val
+end)
+
+local cur_rot = 0
+local cur_focused_player = nil
+local cur_clone = 0
+util.create_tick_handler(function()
+    local focused = players.get_focused()
+    if #focused > 0 and menu.is_open() and (players.get_spectate_target(players.user()) ~= focused[1]) then
+        local pid = focused[1]
+        if pid ~= cur_focused_player then
+            if cur_clone ~= 0 then
+                entities.delete(cur_clone)
+            end
+            cur_focused_player = pid
+            cur_clone = create_player_clone(pid)
+        end
+        local offset = get_offset_from_gameplay_camera(3.0)
+        offset.z += y_offset
+        SET_ENTITY_COORDS(cur_clone, offset.x, offset.y, offset.z, true, true, true, false)
+        SET_ENTITY_ROTATION(cur_clone, 0, 0, cur_rot, 0, true)
+        util.draw_box(v3.new(offset.x, offset.y, offset.z + 0.9), v3.new(0, 0, cur_rot), v3.new(1, 1, 2), 255, 255, 255, 50)
+        if cur_rot >= 360 then
+            cur_rot = 0 
+        else 
+            cur_rot += 1
+        end
+    else
+        if cur_focused_player ~= nil then
+            entities.delete(cur_clone)
+            cur_clone = 0
+            cur_focused_player = nil
+        end
+    end
+end)
