@@ -82,3 +82,5 @@ util.create_tick_handler(function()
         end
     end
 end)
+
+root:hyperlink('Join Discord', 'https://discord.gg/zZ2eEjj88v', '')
