@@ -8,6 +8,7 @@
 --\________|\__|  \__|\__|  \__| \______/ \________|
 -- coded by Lance/stonerchrist on Discord
 util.require_natives("2944b", "g")
+pluto_use "0.5.0"
 local ROOT = menu.my_root()
 
 local function debug(txt)
